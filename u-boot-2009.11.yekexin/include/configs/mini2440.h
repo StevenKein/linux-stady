@@ -64,11 +64,23 @@
 /*
  * Hardware drivers
  */
+#if 0
 #define CONFIG_NET_MULTI
 #define CONFIG_CS8900		/* we have a CS8900 on-board */
 #define CONFIG_CS8900_BASE	0x19000300
 #define CONFIG_CS8900_BUS16	/* the Linux driver does accesses as shorts */
-
+#endif
+#if 1
+#define CONFIG_NET_MULTI           1
+#define CONFIG_NET_RETRY_COUNT     20
+#define CONFIG_DRIVER_DM9000       1
+#define CONFIG_DM9000_BASE         0x20000300
+#define DM9000_IO                  CONFIG_DM9000_BASE
+#define DM9000_DATA                (CONFIG_DM9000_BASE+4)
+#define CONFIG_DM9000_USE_16BIT    1
+#define CONFIG_DM9000_NO_SROM      1
+#undef  CONFIG_DM9000_DEBUG
+#endif
 /*
  * select serial console configuration
  */
@@ -130,7 +142,7 @@
  */
 #define	CONFIG_SYS_LONGHELP				/* undef to save memory		*/
 #define	CONFIG_SYS_PROMPT		"[ ~ljh@GDLC ]# "	/* Monitor Command Prompt	*/
-#define	CONFIG_SYS_CBSIZE		256		/* Console I/O Buffer Size	*/
+#define CONFIG_SYS_CBSIZE      		256
 #define	CONFIG_SYS_PBSIZE (CONFIG_SYS_CBSIZE+sizeof(CONFIG_SYS_PROMPT)+16) /* Print Buffer Size */
 #define	CONFIG_SYS_MAXARGS		16		/* max number of command args	*/
 #define CONFIG_SYS_BARGSIZE		CONFIG_SYS_CBSIZE	/* Boot Argument Buffer Size	*/
