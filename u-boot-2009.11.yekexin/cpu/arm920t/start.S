@@ -34,7 +34,7 @@
  *
  *************************************************************************
  */
-
+@中断列表
 
 .globl _start
 _start:	b	start_code
@@ -71,9 +71,9 @@ _fiq:			.word fiq
  */
 
 _TEXT_BASE:
-	.word	TEXT_BASE
+	.word	TEXT_BASE   @u-boot运行地址
 
-.globl _armboot_start
+.globl _armboot_start       
 _armboot_start:
 	.word _start
 
@@ -105,7 +105,7 @@ FIQ_STACK_START:
  * the actual start code
  */
 
-start_code:
+start_code:@复位
 	/*
 	 * set the cpu to SVC32 mode
 	 */
@@ -151,14 +151,14 @@ copyex:
 #define PSDIV_200	0x31		/* tekkaman */
 
 
-	ldr	r0, =pWTCON
+	ldr	r0, =pWTCON @关闭看门狗
 	mov	r1, #0x0
 	str	r1, [r0]
 
 	/*
 	 * mask all IRQs by setting all bits in the INTMR - default
 	 */
-	mov	r1, #0xffffffff
+	mov	r1, #0xffffffff       @关闭所有中断
 	ldr	r0, =INTMSK
 	str	r1, [r0]
 # if defined(CONFIG_S3C2410)
@@ -173,7 +173,7 @@ copyex:
 	str	r1, [r0]
 #endif
 
-
+@配置系统时钟到400MHz
 #if defined(CONFIG_S3C2440)
 	/* FCLK:HCLK:PCLK = 1:4:8 */
 	ldr	r0, =CLKDIVN
@@ -214,11 +214,14 @@ copyex:
 	 * we do sys-critical inits only at reboot,
 	 * not when booting from ram!
 	 */
+@SDRAM初始化
 #ifndef CONFIG_SKIP_LOWLEVEL_INIT
 	bl	cpu_init_crit
 #endif
 
 /***************** CHECK_CODE_POSITION ******************************************/
+@校验当前代码执行地址  如果已经在SDRAM中则直接跳到SDRAM中执行 不进行代码到拷贝
+@否则从nandflash或norflash中拷贝代码到SDRAM中
 	adr	r0, _start		/* r0 <- current position of code   */
 	ldr	r1, _TEXT_BASE		/* test if we run from flash or RAM */
 	cmp	r0, r1			/* don't reloc during debug         */
@@ -229,7 +232,10 @@ copyex:
 	ldr	r1, =( (4<<28)|(3<<4)|(3<<2) )		/* address of Internal SRAM  0x4000003C*/
 	mov	r0, #0		/* r0 = 0 */
 	str	r0, [r1]
-
+@读取0x4000003c处数据 如果可读可写则认为是内部ram 否则认为是norflash
+@因为从norflash出启动是将norflash映射到0地址出
+@而不从norflash启动是将内部ram映射到0地址处
+@通过验证是否可读可写可以得到是在norflash还是在ram运行
 
 	mov	r1, #0x3c		/* address of men  0x0000003C*/
 	ldr	r0, [r1]
@@ -304,7 +310,7 @@ loop2:
 	b	loop2	@ infinite loop
 ok_nand_read:
 	@ verify
-	mov	r0, #0
+	mov	r0, #0        @r0 source  r1 dest   r2 size
 	ldr	r1, =TEXT_BASE
 	mov	r2, #0x400	@ 4 bytes * 1024 = 4K-bytes
 go_next:

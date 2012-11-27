@@ -236,32 +236,32 @@ int print_cpuinfo (void);
 
 init_fnc_t *init_sequence[] = {
 #if defined(CONFIG_ARCH_CPU_INIT)
-	arch_cpu_init,		/* basic arch cpu dependent setup */
+	arch_cpu_init,		/* basic arch cpu dependent setup 没有调用在mini2440 board */
 #endif
-	board_init,		/* basic board dependent setup */
+	board_init,		/* basic board dependent setup 配置cpu时钟 初始化gpio mmu */
 #if defined(CONFIG_USE_IRQ)
-	interrupt_init,		/* set up exceptions */
+	interrupt_init,		/* set up exceptions   中断没有配置 */
 #endif
-	timer_init,		/* initialize timer */
-	env_init,		/* initialize environment */
-	init_baudrate,		/* initialze baudrate settings */
-	serial_init,		/* serial communications setup */
-	console_init_f,		/* stage 1 init of console */
+	timer_init,		/* initialize timer    初始化定时器 */
+	env_init,		/* initialize environment   环境变量初始化*/
+	init_baudrate,		/* initialze baudrate settings 配置串口波特率*/
+	serial_init,		/* serial communications setup 串口初始化*/
+	console_init_f,		/* stage 1 init of console 控制台初始化*/
 	display_banner,		/* say that we are here */
 #if defined(CONFIG_DISPLAY_CPUINFO)
-	print_cpuinfo,		/* display cpu info (and speed) */
+	print_cpuinfo,		/* display cpu info (and speed) 没有定义 */
 #endif
 #if defined(CONFIG_DISPLAY_BOARDINFO)
-	checkboard,		/* display board info */
+	checkboard,		/* display board info 没有定义不调用*/
 #endif
 #if defined(CONFIG_HARD_I2C) || defined(CONFIG_SOFT_I2C)
 	init_func_i2c,
 #endif
-	dram_init,		/* configure available RAM banks */
+	dram_init,		/* configure available RAM banks 初始化SDRAM的起始地址和大小0x30000000 0x4000000*/
 #if defined(CONFIG_CMD_PCI) || defined (CONFIG_PCI)
 	arm_pci_init,
 #endif
-	display_dram_config,
+	display_dram_config,    /*打印dram信息*/
 	NULL,
 };
 
@@ -285,7 +285,7 @@ void start_armboot (void)
 	gd->flags |= GD_FLG_RELOC;
 
 	monitor_flash_len = _bss_start - _armboot_start;
-
+	
 	for (init_fnc_ptr = init_sequence; *init_fnc_ptr; ++init_fnc_ptr) {
 		if ((*init_fnc_ptr)() != 0) {
 			hang ();
@@ -332,7 +332,7 @@ void start_armboot (void)
 
 #if defined(CONFIG_CMD_NAND)
 	puts ("NAND:  ");
-	nand_init();		/* go init the NAND */
+	nand_init();		/* go init the NAND  (board/yekexin/mini2440/mini2440.c*/
 #endif
 
 #if defined(CONFIG_CMD_ONENAND)

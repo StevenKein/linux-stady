@@ -35,12 +35,18 @@ flash_info_t flash_info[CONFIG_SYS_MAX_FLASH_BANKS];
 #define CMD_UNLOCK1		0x000000AA
 #define CMD_UNLOCK2		0x00000055
 #define CMD_ERASE_SETUP		0x00000080
-#define CMD_ERASE_CONFIRM	0x00000030
+//#define CMD_ERASE_CONFIRM	0x00000030
+#define CMD_ERASE_CONFIRM	0x00000050
 #define CMD_PROGRAM		0x000000A0
 #define CMD_UNLOCK_BYPASS	0x00000020
 
+#ifdef  CONFIG_SST_VF1601
+#define MEM_FLASH_ADDR1		(*(volatile u16 *)(CONFIG_SYS_FLASH_BASE + (0x000005555 << 1)))
+#define MEM_FLASH_ADDR2		(*(volatile u16 *)(CONFIG_SYS_FLASH_BASE + (0x000002AAA << 1)))
+#else
 #define MEM_FLASH_ADDR1		(*(volatile u16 *)(CONFIG_SYS_FLASH_BASE + (0x00000555 << 1)))
 #define MEM_FLASH_ADDR2		(*(volatile u16 *)(CONFIG_SYS_FLASH_BASE + (0x000002AA << 1)))
+#endif
 
 #define BIT_ERASE_DONE		0x00000080
 #define BIT_RDY_MASK		0x00000080
@@ -69,6 +75,9 @@ ulong flash_init (void)
 #elif defined(CONFIG_AMD_LV800)
 			(AMD_MANUFACT & FLASH_VENDMASK) |
 			(AMD_ID_LV800B & FLASH_TYPEMASK);
+#elif defined(CONFIG_SST_VF1601)
+			(SST_MANUFACT & FLASH_VENDMASK) |
+			(SST_ID_xF1601 & FLASH_TYPEMASK);
 #else
 #error "Unknown flash configured"
 #endif
@@ -80,6 +89,7 @@ ulong flash_init (void)
 		else
 			panic ("configured too many flash banks!\n");
 		for (j = 0; j < flash_info[i].sector_count; j++) {
+#ifndef CONFIG_SST_VF1601
 			if (j <= 3) {
 				/* 1st one is 16 KB */
 				if (j == 0) {
@@ -90,9 +100,7 @@ ulong flash_init (void)
 				/* 2nd and 3rd are both 8 KB */
 				if ((j == 1) || (j == 2)) {
 					flash_info[i].start[j] =
-						flashbase + 0x4000 + (j -
-								      1) *
-						0x2000;
+						flashbase + 0x4000 + (j -1) *0x2000;
 				}
 
 				/* 4th 32 KB */
@@ -104,6 +112,11 @@ ulong flash_init (void)
 				flash_info[i].start[j] =
 					flashbase + (j - 3) * MAIN_SECT_SIZE;
 			}
+#else
+				flash_info[i].start[j] =
+					flashbase + (j) * MAIN_SECT_SIZE;
+#endif
+
 		}
 		size += flash_info[i].size;
 	}
@@ -130,6 +143,9 @@ void flash_print_info (flash_info_t * info)
 	case (AMD_MANUFACT & FLASH_VENDMASK):
 		printf ("AMD: ");
 		break;
+	case (SST_MANUFACT & FLASH_VENDMASK):
+		printf ("SST: ");
+		break;
 	default:
 		printf ("Unknown Vendor ");
 		break;
@@ -142,6 +158,10 @@ void flash_print_info (flash_info_t * info)
 	case (AMD_ID_LV800B & FLASH_TYPEMASK):
 		printf ("1x Amd29LV800BB (8Mbit)\n");
 		break;
+	case (SST_ID_xF1601 & FLASH_TYPEMASK):
+		printf ("1x SST39VF1601 (2MB)\n");
+		break;
+
 	default:
 		printf ("Unknown Chip Type\n");
 		goto Done;
@@ -169,10 +189,10 @@ void flash_print_info (flash_info_t * info)
 
 int flash_erase (flash_info_t * info, int s_first, int s_last)
 {
-	ushort result;
+//	ushort result;
 	int iflag, cflag, prot, sect;
 	int rc = ERR_OK;
-	int chip;
+//	int chip;
 
 	/* first look for protection bits */
 
@@ -182,12 +202,17 @@ int flash_erase (flash_info_t * info, int s_first, int s_last)
 	if ((s_first < 0) || (s_first > s_last)) {
 		return ERR_INVAL;
 	}
-
+#ifdef CONFIG_SST_VF1601
+	if ((info->flash_id & FLASH_VENDMASK) !=
+	    (SST_MANUFACT & FLASH_VENDMASK)) {
+		return ERR_UNKNOWN_FLASH_VENDOR;
+	}
+#else 
 	if ((info->flash_id & FLASH_VENDMASK) !=
 	    (AMD_MANUFACT & FLASH_VENDMASK)) {
 		return ERR_UNKNOWN_FLASH_VENDOR;
 	}
-
+#endif    
 	prot = 0;
 	for (sect = s_first; sect <= s_last; ++sect) {
 		if (info->protect[sect]) {
@@ -226,6 +251,7 @@ int flash_erase (flash_info_t * info, int s_first, int s_last)
 			MEM_FLASH_ADDR2 = CMD_UNLOCK2;
 			*addr = CMD_ERASE_CONFIRM;
 
+#if 0
 			/* wait until flash is ready */
 			chip = 0;
 
@@ -267,11 +293,31 @@ int flash_erase (flash_info_t * info, int s_first, int s_last)
 			printf ("protected!\n");
 		}
 	}
+#endif
+                        /* wait until flash is ready */
+                     while(1){
+                            unsigned short i;
+                            i = *((volatile unsigned short *)addr) & 0x40;
+                            if(i != (*((volatile unsigned short *)addr) & 0x40))
+                                   continue;
+                            if((*((volatile unsigned short *)addr)) & 0x80)
+                                   break;
+                     }
+                     printf ("ok.\n");
+
+              } else {   /* it was protected */
+                     printf ("protected!\n");
+              }
+       }
+
+
+
+
 
 	if (ctrlc ())
 		printf ("User Interrupt!\n");
 
-      outahere:
+//      outahere:
 	/* allow flash to settle - wait 10 ms */
 	udelay_masked (10000);
 
@@ -294,7 +340,7 @@ static int write_hword (flash_info_t * info, ulong dest, ushort data)
 	ushort result;
 	int rc = ERR_OK;
 	int cflag, iflag;
-	int chip;
+//	int chip;
 
 	/*
 	 * Check if Flash is (sufficiently) erased
@@ -317,13 +363,15 @@ static int write_hword (flash_info_t * info, ulong dest, ushort data)
 
 	MEM_FLASH_ADDR1 = CMD_UNLOCK1;
 	MEM_FLASH_ADDR2 = CMD_UNLOCK2;
-	MEM_FLASH_ADDR1 = CMD_UNLOCK_BYPASS;
-	*addr = CMD_PROGRAM;
+//	MEM_FLASH_ADDR1 = CMD_UNLOCK_BYPASS;
+//	*addr = CMD_PROGRAM;
+	MEM_FLASH_ADDR1 = CMD_PROGRAM;
+
 	*addr = data;
 
 	/* arm simple, non interrupt dependent timer */
 	reset_timer_masked ();
-
+#if 0
 	/* wait until flash is ready */
 	chip = 0;
 	do {
@@ -352,6 +400,18 @@ static int write_hword (flash_info_t * info, ulong dest, ushort data)
 
 	if (chip == ERR || *addr != data)
 		rc = ERR_PROG_ERROR;
+#endif
+
+           /* wait until flash is ready */
+       while(1){
+              unsigned short i = *(volatile unsigned short *)addr & 0x40;
+              if(i != (*(volatile unsigned short *)addr & 0x40))   //D6 == D6
+                     continue;
+              if((*(volatile unsigned short *)addr & 0x80) == (data & 0x80)){
+                     rc = ERR_OK;
+                     break;     //D7 == D7
+              }
+       }
 
 	if (iflag)
 		enable_interrupts ();
