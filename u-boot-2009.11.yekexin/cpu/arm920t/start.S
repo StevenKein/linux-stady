@@ -297,7 +297,7 @@ nand2:
 	ldr	sp, DW_STACK_START	@ setup stack pointer
 	mov	fp, #0	@ no previous frame, so fp=0
 
-	@ copy U-Boot to RAM
+	@ copy U-Boot to RAM 调用nand_read_ll函数 读取从flash中读取到RAM中。
 	ldr	r0, =TEXT_BASE
 	mov	r1, #0x0
 	mov	r2, #LENGTH_UBOOT

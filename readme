@@ -2,3 +2,4 @@
 
 2012.11.18： 1、创建工程给予mini2440开发板的u-boot移植。
 	     2、添加启动过程中nandflash驱动。
+2012.11.27:  mini2440/flash.c 文件学习，配置2440flash。flash.c文件时作为norflash驱动存在的，主要是对norflash的操作。	   

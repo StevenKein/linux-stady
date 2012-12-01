@@ -122,7 +122,7 @@ void blue_LED_off(void) __attribute__((weak, alias("__blue_LED_off")));
 #if defined(CONFIG_ARM_DCC) && !defined(CONFIG_BAUDRATE)
 #define CONFIG_BAUDRATE 115200
 #endif
-static int init_baudrate (void)
+static int init_baudrate (void)  /*初始化波特率,从环境变量配置中读取波特率，如果环境变量没有配置，则初始化为默认波特率*/
 {
 	char tmp[64];	/* long enough for environment variables */
 	int i = getenv_r ("baudrate", tmp, sizeof (tmp));
@@ -133,7 +133,7 @@ static int init_baudrate (void)
 	return (0);
 }
 
-static int display_banner (void)
+static int display_banner (void)‘/*打印当前系统信息*/
 {
 	printf ("\n\n%s\n\n", version_string);
 	debug ("U-Boot code: %08lX -> %08lX  BSS: -> %08lX\n",

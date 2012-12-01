@@ -565,19 +565,19 @@ int getenv_r (char *name, char *buf, unsigned len)
 {
 	int i, nxt;
 
-	for (i=0; env_get_char(i) != '\0'; i=nxt+1) {
+	for (i=0; env_get_char(i) != '\0'; i=nxt+1) {   /*获取环境变量中不为0的数据*/
 		int val, n;
 
-		for (nxt=i; env_get_char(nxt) != '\0'; ++nxt) {
+		for (nxt=i; env_get_char(nxt) != '\0'; ++nxt) {   /*移动到当前配置的末尾*/
 			if (nxt >= CONFIG_ENV_SIZE) {
 				return (-1);
 			}
 		}
-		if ((val=envmatch((uchar *)name, i)) < 0)
+		if ((val=envmatch((uchar *)name, i)) < 0)     /*比对当前字符串是否相等,如果返回大于0的数则为当前变量，否则返回-1*/
 			continue;
 		/* found; copy out */
 		n = 0;
-		while ((len > n++) && (*buf++ = env_get_char(val++)) != '\0')
+		while ((len > n++) && (*buf++ = env_get_char(val++)) != '\0')  /*获取环境变量的配置值*/
 			;
 		if (len == n)
 			*buf = '\0';
