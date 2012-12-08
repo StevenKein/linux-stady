@@ -33,10 +33,12 @@
 
 #if defined(CONFIG_S3C2400)
 #include <s3c2400.h>
-#elif defined(CONFIG_S3C2410) || defined(CONFIG_S3C2440)
+#elif defined(CONFIG_S3C2410) || defined (CONFIG_S3C2440) 
 #include <s3c2410.h>
 #endif
 #include <asm/proc-armv/ptrace.h>
+
+#include <asm/io.h>
 
 void do_irq (struct pt_regs *pt_regs)
 {
@@ -44,3 +46,11 @@ void do_irq (struct pt_regs *pt_regs)
 	u_int32_t intpnd = readl(&irq->INTPND);
 
 }
+
+//Apollo +
+
+int arch_interrupt_init (void)
+{
+	return 0;
+}
+//Apollo -

@@ -49,6 +49,7 @@
 #include <nand.h>
 #include <onenand_uboot.h>
 #include <mmc.h>
+#include <s3c2410.h>    //tekkamanninja
 
 #ifdef CONFIG_BITBANGMII
 #include <miiphy.h>
@@ -86,7 +87,7 @@ extern void rtl8019_get_enetaddr (uchar * addr);
 #include <i2c.h>
 #endif
 
-
+#if 0
 /************************************************************************
  * Coloured LED functionality
  ************************************************************************
@@ -110,6 +111,7 @@ void inline __blue_LED_on(void) {}
 void blue_LED_on(void) __attribute__((weak, alias("__blue_LED_on")));
 void inline __blue_LED_off(void) {}
 void blue_LED_off(void) __attribute__((weak, alias("__blue_LED_off")));
+#endif
 
 /************************************************************************
  * Init Utilities							*
@@ -122,7 +124,7 @@ void blue_LED_off(void) __attribute__((weak, alias("__blue_LED_off")));
 #if defined(CONFIG_ARM_DCC) && !defined(CONFIG_BAUDRATE)
 #define CONFIG_BAUDRATE 115200
 #endif
-static int init_baudrate (void)  /*初始化波特率,从环境变量配置中读取波特率，如果环境变量没有配置，则初始化为默认波特率*/
+static int init_baudrate (void)
 {
 	char tmp[64];	/* long enough for environment variables */
 	int i = getenv_r ("baudrate", tmp, sizeof (tmp));
@@ -133,9 +135,15 @@ static int init_baudrate (void)  /*初始化波特率,从环境变量配置中�
 	return (0);
 }
 
-static int display_banner (void)‘/*打印当前系统信息*/
+static int display_banner (void)
 {
-	printf ("\n\n%s\n\n", version_string);
+#if defined(CONFIG_MINI2440_LED) 	
+	struct s3c24x0_gpio * const gpio = s3c24x0_get_base_gpio();
+	gpio->GPBDAT = 0x101; //tekkamanninja
+#endif
+	printf ("\n\n%s\n\n", version_string);	
+	printf (" modified by tekkamanninja (tekkamanninja@163.com)\n");
+	printf (" Love Linux forever!!\n\n");
 	debug ("U-Boot code: %08lX -> %08lX  BSS: -> %08lX\n",
 	       _armboot_start, _bss_start, _bss_end);
 #ifdef CONFIG_MODEM_SUPPORT
@@ -236,32 +244,32 @@ int print_cpuinfo (void);
 
 init_fnc_t *init_sequence[] = {
 #if defined(CONFIG_ARCH_CPU_INIT)
-	arch_cpu_init,		/* basic arch cpu dependent setup 没有调用在mini2440 board */
+	arch_cpu_init,		/* basic arch cpu dependent setup */
 #endif
-	board_init,		/* basic board dependent setup 配置cpu时钟 初始化gpio mmu */
+	board_init,		/* basic board dependent setup */
 #if defined(CONFIG_USE_IRQ)
-	interrupt_init,		/* set up exceptions   中断没有配置 */
+	interrupt_init,		/* set up exceptions */
 #endif
-	timer_init,		/* initialize timer    初始化定时器 */
-	env_init,		/* initialize environment   环境变量初始化*/
-	init_baudrate,		/* initialze baudrate settings 配置串口波特率*/
-	serial_init,		/* serial communications setup 串口初始化*/
-	console_init_f,		/* stage 1 init of console 控制台初始化*/
+	timer_init,		/* initialize timer */
+	env_init,		/* initialize environment */
+	init_baudrate,		/* initialze baudrate settings */
+	serial_init,		/* serial communications setup */
+	console_init_f,		/* stage 1 init of console */
 	display_banner,		/* say that we are here */
 #if defined(CONFIG_DISPLAY_CPUINFO)
-	print_cpuinfo,		/* display cpu info (and speed) 没有定义 */
+	print_cpuinfo,		/* display cpu info (and speed) */
 #endif
 #if defined(CONFIG_DISPLAY_BOARDINFO)
-	checkboard,		/* display board info 没有定义不调用*/
+	checkboard,		/* display board info */
 #endif
 #if defined(CONFIG_HARD_I2C) || defined(CONFIG_SOFT_I2C)
 	init_func_i2c,
 #endif
-	dram_init,		/* configure available RAM banks 初始化SDRAM的起始地址和大小0x30000000 0x4000000*/
+	dram_init,		/* configure available RAM banks */
 #if defined(CONFIG_CMD_PCI) || defined (CONFIG_PCI)
 	arm_pci_init,
 #endif
-	display_dram_config,    /*打印dram信息*/
+	display_dram_config,
 	NULL,
 };
 
@@ -272,7 +280,9 @@ void start_armboot (void)
 #if defined(CONFIG_VFD) || defined(CONFIG_LCD)
 	unsigned long addr;
 #endif
-
+#if defined(CONFIG_MINI2440_LED) 	
+	struct s3c24x0_gpio * const gpio = s3c24x0_get_base_gpio();
+#endif
 	/* Pointer is writable since we allocated a register for it */
 	gd = (gd_t*)(_armboot_start - CONFIG_SYS_MALLOC_LEN - sizeof(gd_t));
 	/* compiler optimization barrier needed for GCC >= 3.4 */
@@ -285,7 +295,7 @@ void start_armboot (void)
 	gd->flags |= GD_FLG_RELOC;
 
 	monitor_flash_len = _bss_start - _armboot_start;
-	
+
 	for (init_fnc_ptr = init_sequence; *init_fnc_ptr; ++init_fnc_ptr) {
 		if ((*init_fnc_ptr)() != 0) {
 			hang ();
@@ -332,7 +342,7 @@ void start_armboot (void)
 
 #if defined(CONFIG_CMD_NAND)
 	puts ("NAND:  ");
-	nand_init();		/* go init the NAND  (board/yekexin/mini2440/mini2440.c*/
+	nand_init();		/* go init the NAND */
 #endif
 
 #if defined(CONFIG_CMD_ONENAND)
@@ -378,10 +388,12 @@ void start_armboot (void)
 	/* miscellaneous platform dependent initialisations */
 	misc_init_r ();
 #endif
-
 	/* enable exceptions */
 	enable_interrupts ();
 
+#ifdef CONFIG_USB_DEVICE
+	usb_init_slave();
+#endif
 	/* Perform network card initialisation if necessary */
 #ifdef CONFIG_DRIVER_TI_EMAC
 	/* XXX: this needs to be moved to board init */
@@ -433,6 +445,15 @@ extern void davinci_eth_set_mac_addr (const u_int8_t *addr);
 	debug ("Reset Ethernet PHY\n");
 	reset_phy();
 #endif
+#endif
+#if defined(CONFIG_MINI2440_LED) 	
+		gpio->GPBDAT = 0x0; //tekkamanninja
+#endif
+ 
+#if defined(CONFIG_CFB_CONSOLE)        
+	printf ("%s\n", version_string);
+	printf ("modified by tekkamanninja\n(tekkamanninja@163.com)\n");
+	printf ("Love Linux forever!!\n");
 #endif
 	/* main_loop() can return to retry autoboot, if so just run it again. */
 	for (;;) {

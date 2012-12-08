@@ -31,6 +31,7 @@
 #include <common.h>
 #include <netdev.h>
 #include <s3c2410.h>
+#include <video_fb.h>
 
 #if defined(CONFIG_CMD_NAND)
 #include <linux/mtd/nand.h>
@@ -45,9 +46,20 @@ DECLARE_GLOBAL_DATA_PTR;
 #define M_PDIV	0x4
 #define M_SDIV	0x1
 #elif FCLK_SPEED==1		/* Fout = 202.8MHz */
-#define M_MDIV	0x5c
-#define M_PDIV	0x4
-#define M_SDIV	0x0
+
+#if defined(CONFIG_S3C2410)
+/* Fout = 202.8MHz */
+#define M_MDIV	0xA1
+#define M_PDIV	0x3
+#define M_SDIV	0x1
+#endif
+
+#if defined(CONFIG_S3C2440)
+/* Fout = 405MHz */
+#define M_MDIV 0x7f	
+#define M_PDIV 0x2
+#define M_SDIV 0x1
+#endif
 #endif
 
 #define USB_CLOCK 1
@@ -57,8 +69,17 @@ DECLARE_GLOBAL_DATA_PTR;
 #define U_M_PDIV	0x3
 #define U_M_SDIV	0x1
 #elif USB_CLOCK==1
+
+#if defined(CONFIG_S3C2410)
 #define U_M_MDIV	0x48
 #define U_M_PDIV	0x3
+#endif
+
+#if defined(CONFIG_S3C2440)
+#define U_M_MDIV 0x38
+#define U_M_PDIV 0x2
+#endif
+
 #define U_M_SDIV	0x2
 #endif
 
@@ -96,13 +117,26 @@ int board_init (void)
 
 	/* set up the I/O ports */
 	gpio->GPACON = 0x007FFFFF;
+
+#if defined(CONFIG_MINI2440) 
+	gpio->GPBCON = 0x00295551;
+#else
 	gpio->GPBCON = 0x00044556;
+#endif
+
 	gpio->GPBUP = 0x000007FF;
+
+#if defined(CONFIG_MINI2440) 
+	gpio->GPCCON = 0xAAAAA6AA;
+	gpio->GPCDAT &= ~(1<<5);
+#else
 	gpio->GPCCON = 0xAAAAAAAA;
-	gpio->GPCUP = 0x0000FFFF;
+#endif
+	gpio->GPCUP = 0xFFFFFFFF;
 	gpio->GPDCON = 0xAAAAAAAA;
-	gpio->GPDUP = 0x0000FFFF;
-	gpio->GPECON = 0xAAAAAAAA;
+	gpio->GPDUP = 0xFFFFFFFF;
+
+    gpio->GPECON = 0xAAAAAAAA;
 	gpio->GPEUP = 0x0000FFFF;
 	gpio->GPFCON = 0x000055AA;
 	gpio->GPFUP = 0x000000FF;
@@ -115,17 +149,81 @@ int board_init (void)
 	gpio->EXTINT1=0x22222222;
 	gpio->EXTINT2=0x22222222;
 
+#if defined(CONFIG_S3C2410)
 	/* arch number of SMDK2410-Board */
 	gd->bd->bi_arch_number = MACH_TYPE_SMDK2410;
+#endif
+
+#if defined(CONFIG_S3C2440)
+/* arch number of S3C2440-Board */
+	gd->bd->bi_arch_number = MACH_TYPE_MINI2440 ;
+#endif
+
 
 	/* adress of boot parameters */
 	gd->bd->bi_boot_params = 0x30000100;
 
 	icache_enable();
 	dcache_enable();
-
+#if	defined(CONFIG_MINI2440_LED)
+	gpio->GPBDAT = 0x00000181;
+#endif
 	return 0;
 }
+
+
+
+#define MVAL		(0)
+#define MVAL_USED 	(0)		//0=each frame   1=rate by MVAL
+#define INVVDEN		(1)		//0=normal       1=inverted
+#define BSWP		(0)		//Byte swap control
+#define HWSWP		(1)		//Half word swap control
+
+
+//TFT 240320
+#define LCD_XSIZE_TFT_240320 	(240)	
+#define LCD_YSIZE_TFT_240320 	(320)
+
+//TFT240320
+#define HOZVAL_TFT_240320	(LCD_XSIZE_TFT_240320-1)
+#define LINEVAL_TFT_240320	(LCD_YSIZE_TFT_240320-1)
+
+//Timing parameter for NEC3.5"
+#define VBPD_240320		(3)		
+#define VFPD_240320		(10)
+#define VSPW_240320		(1)
+
+#define HBPD_240320		(5)
+#define HFPD_240320		(2)
+#define HSPW_240320_NEC		(36)  //Adjust the horizontal displacement of the screen :tekkamanninja@163.com
+#define HSPW_240320_TD		(23)  //64MB nand mini2440 is 36 ,128MB is 23
+				      //+ ： -->    - : <--
+#define CLKVAL_TFT_240320	(3) 	
+//FCLK=101.25MHz,HCLK=50.625MHz,VCLK=6.33MHz
+
+
+void board_video_init(GraphicDevice *pGD) 
+{ 
+	struct s3c24x0_lcd * const lcd	 = s3c24x0_get_base_lcd(); 
+	struct s3c2410_nand * const nand = s3c2410_get_base_nand();
+    /* FIXME: select LCM type by env variable */ 
+	 
+	/* Configuration for GTA01 LCM on QT2410 */ 
+	lcd->LCDCON1 = 0x00000378; /* CLKVAL=4, BPPMODE=16bpp, TFT, ENVID=0 */ 
+	lcd->LCDCON2 = (VBPD_240320<<24)|(LINEVAL_TFT_240320<<14)|(VFPD_240320<<6)|(VSPW_240320); 
+	lcd->LCDCON3 = (HBPD_240320<<19)|(HOZVAL_TFT_240320<<8)|(HFPD_240320); 
+
+	if ( (nand->NFCONF) & 0x08 )	{ 
+	lcd->LCDCON4 = (MVAL<<8)|(HSPW_240320_TD);
+	}
+	else	{
+	  lcd->LCDCON4 = (MVAL<<8)|(HSPW_240320_NEC);
+	}
+	
+	lcd->LCDCON5 = 0x00000f09; 
+	lcd->LPCSEL  = 0x00000000; 
+} 
+
 
 int dram_init (void)
 {
@@ -135,6 +233,7 @@ int dram_init (void)
 	return 0;
 }
 
+#if 0
 #if defined(CONFIG_CMD_NAND)
 extern ulong nand_probe(ulong physadr);
 
@@ -180,6 +279,7 @@ void nand_init(void)
 	printf ("%4lu MB\n", nand_probe((ulong)nand) >> 20);
 }
 #endif
+#endif
 
 #ifdef CONFIG_CMD_NET
 int board_eth_init(bd_t *bis)
@@ -187,6 +287,9 @@ int board_eth_init(bd_t *bis)
 	int rc = 0;
 #ifdef CONFIG_CS8900
 	rc = cs8900_initialize(0, CONFIG_CS8900_BASE);
+#endif
+#ifdef CONFIG_DRIVER_DM9000
+	rc = dm9000_initialize(bis);
 #endif
 	return rc;
 }
