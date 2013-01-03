@@ -445,13 +445,13 @@ static int dm9000_send(struct eth_device *netdev, volatile void *packet,
 */
 static void dm9000_halt(struct eth_device *netdev)
 {
-	DM9000_DBG("%s\n", __func__);
+//	DM9000_DBG("%s\n", __func__);
 
 	/* RESET devie */
-	phy_write(0, 0x8000);	/* PHY RESET */
-	DM9000_iow(DM9000_GPR, 0x01);	/* Power-Down PHY */
-	DM9000_iow(DM9000_IMR, 0x80);	/* Disable all interrupt */
-	DM9000_iow(DM9000_RCR, 0x00);	/* Disable RX */
+//	phy_write(0, 0x8000);	/* PHY RESET */
+//	DM9000_iow(DM9000_GPR, 0x01);	/* Power-Down PHY */
+//	DM9000_iow(DM9000_IMR, 0x80);	/* Disable all interrupt */
+//	DM9000_iow(DM9000_RCR, 0x00);	/* Disable RX */
 }
 
 /*

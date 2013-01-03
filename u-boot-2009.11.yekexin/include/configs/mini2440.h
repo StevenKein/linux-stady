@@ -145,7 +145,7 @@
 #define CONFIG_OVERWRITE_ETHADDR_ONCE
 
 /*#define CONFIG_BOOTFILE	"elinos-lart" */
-#define CONFIG_BOOTCOMMAND	"nfs 0x30008000 192.168.0.1:/home/tekkaman/working/nfs/zImage.img;bootm"
+#define CONFIG_BOOTCOMMAND	"nfs 0x30008000 192.168.1.103:/home/yekx/work/mini2440/kernel/uImage \;bootm"
 #define	CONFIG_EXTRA_ENV_SETTINGS					\
 	"tekkaman=bmp d 70000\0 "				\
 	"stdin=serial\0"					\

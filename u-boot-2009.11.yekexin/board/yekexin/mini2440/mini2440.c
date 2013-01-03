@@ -149,11 +149,6 @@ int board_init (void)
 	gpio->EXTINT1=0x22222222;
 	gpio->EXTINT2=0x22222222;
 
-#if defined(CONFIG_S3C2410)
-	/* arch number of SMDK2410-Board */
-	gd->bd->bi_arch_number = MACH_TYPE_SMDK2410;
-#endif
-
 #if defined(CONFIG_S3C2440)
 /* arch number of S3C2440-Board */
 	gd->bd->bi_arch_number = MACH_TYPE_MINI2440 ;
