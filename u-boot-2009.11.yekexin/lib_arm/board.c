@@ -142,8 +142,8 @@ static int display_banner (void)
 	gpio->GPBDAT = 0x101; //tekkamanninja
 #endif
 	printf ("\n\n%s\n\n", version_string);	
-	printf (" modified by tekkamanninja (tekkamanninja@163.com)\n");
-	printf (" Love Linux forever!!\n\n");
+	printf ("    modified by StevenKein(yekexinh@gmail.com)\n");
+	printf ("    Love linux, Love minmin\n\n");
 	debug ("U-Boot code: %08lX -> %08lX  BSS: -> %08lX\n",
 	       _armboot_start, _bss_start, _bss_end);
 #ifdef CONFIG_MODEM_SUPPORT
@@ -452,8 +452,8 @@ extern void davinci_eth_set_mac_addr (const u_int8_t *addr);
  
 #if defined(CONFIG_CFB_CONSOLE)        
 	printf ("%s\n", version_string);
-	printf ("modified by tekkamanninja\n(tekkamanninja@163.com)\n");
-	printf ("Love Linux forever!!\n");
+	printf ("modified by StevenKein(yekexinh@gmail.com)\n");
+	printf ("Love Linux, Love minmin\n");
 #endif
 	/* main_loop() can return to retry autoboot, if so just run it again. */
 	for (;;) {
